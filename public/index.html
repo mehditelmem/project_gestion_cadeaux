@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Liste de cadeaux</title>
+</head>
+<body>
+
+<h1>Liste de cadeaux</h1>
+<ul id="cadeauxList"></ul>
+
+<h2>Détails du cadeau sélectionné</h2>
+<div id="detailsCadeau"></div>
+
+<form id="reservationForm">
+    <input type="hidden" id="cadeauId" name="cadeau_id" value="ID_DU_CADEAU">
+    <label for="personneReservant">Nom de la personne réservant :</label>
+    <input type="text" id="personneReservant" name="personne_reservant" required>
+    
+    <label for="prixReel">Prix réel :</label>
+    <input type="number" id="prixReel" name="prix_reel" required>
+    
+    <label for="dateReservation">Date de réservation :</label>
+    <input type="datetime-local" id="dateReservation" name="date_reservation" required>
+    
+    <button type="submit">Réserver</button>
+</form>
+
+
+<script>
+    // Fonctions existantes pour afficher les cadeaux et leurs détails
+    // ...
+
+    // Ajout du gestionnaire d'événements pour le formulaire de réservation
+    document.getElementById('reservationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Récupérer les données du formulaire
+        const formData = new FormData(this);
+
+        // Envoyer les données à l'API pour créer la réservation
+        fetch('http://localhost/projet/public/index.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.text(); // Utilisez text() pour gérer les réponses vides ou non-JSON
+        })
+        .then(text => {
+            try {
+                return JSON.parse(text); // Tentez d'analyser le texte comme JSON
+            } catch (e) {
+                throw new Error('La réponse n\'est pas un JSON valide : ' + text);
+            }
+        })
+        .then(data => {
+            console.log(data);
+            // Traiter la réponse ici
+            if (data.error) {
+                // Afficher un message d'erreur
+                alert("Erreur lors de la réservation : " + data.error);
+            } else {
+                // Afficher un message de succès
+                alert("Réservation effectuée avec succès!");
+
+                // Optionnel : Mettre à jour l'UI ou rediriger
+                // window.location.href = "page_de_confirmation.html";
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+        });
+    }); // <-- Ajoutez l'accolade fermante ici
+</script>
+
+<script>
+// Fonction pour récupérer et afficher les détails d'un cadeau spécifique
+function afficherDetailsCadeau(cadeauId) {
+    fetch(`http://localhost/projet/public/index.php?action=get_cadeau&id=${cadeauId}`)
+        .then(response => response.json())
+        .then(data => {
+            const detailsCadeau = document.getElementById('detailsCadeau');
+            // Construire la structure pour afficher les détails du cadeau
+            detailsCadeau.innerHTML = `
+                <h3>${data.nom}</h3>
+                <p>Résumé: ${data.resume}</p>
+                <p>Prix: ${data.prix}</p>
+                <p>Image: <img src="${data.image}" alt="${data.nom}" width="100"></p>
+            `;
+        })
+        .catch(function(error) {
+            console.error('Erreur :', error);
+        });
+}
+
+// Fonction pour ajouter des événements de clic aux éléments de la liste
+function ajouterEvenementsClic() {
+    const cadeauxList = document.getElementById('cadeauxList');
+    cadeauxList.addEventListener('click', function(event) {
+        // Vérifier si l'élément cliqué est une balise <li> contenant l'identifiant du cadeau
+        if (event.target && event.target.nodeName === 'LI') {
+            const cadeauId = event.target.dataset.cadeauId; // Récupérer l'identifiant du cadeau depuis l'attribut data
+            afficherDetailsCadeau(cadeauId); // Afficher les détails du cadeau spécifique
+        }
+    });
+}
+
+// Fonction pour créer la liste de cadeaux
+function afficherCadeaux() {
+    fetch('http://localhost/projet/public/index.php?action=get_cadeaux')
+        .then(response => response.json())
+        .then(data => {
+            const cadeauxList = document.getElementById('cadeauxList');
+            // Créer la liste de cadeaux dans le HTML
+            data.forEach(cadeau => {
+                const li = document.createElement('li');
+                li.textContent = cadeau.nom;
+                li.dataset.cadeauId = cadeau.id; // Stocker l'identifiant du cadeau dans un attribut data
+                cadeauxList.appendChild(li);
+            });
+            ajouterEvenementsClic(); // Ajouter les événements de clic aux éléments de la liste
+        })
+        .catch(error => console.error('Erreur :', error));
+}
+
+// Appeler la fonction pour afficher la liste de cadeaux au chargement de la page
+window.onload = afficherCadeaux;
+</script>
+
+</body>
+</html>
